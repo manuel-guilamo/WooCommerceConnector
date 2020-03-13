@@ -35,10 +35,16 @@ def create_customer(woocommerce_customer, woocommerce_customer_list):
     try:
         # try to match territory
         country_name = get_country_name(woocommerce_customer["billing"]["country"])
+        debug_match_code = ""
         if frappe.db.exists("Territory", country_name):
             territory = country_name
+            debug_match_code = "T1"
         else:
             territory = frappe.utils.nestedset.get_root_of("Territory")
+            debug_match_code = "T2"
+        make_woocommerce_log(title="Territory detection " + debug_match_code, status="Success", method="create_customer", 
+            message="country_code: {0}, country_matches: {1}, territory: {2}".format(woocommerce_customer["billing"]["country"], country_name, territory), 
+            request_data=woocommerce_customer, exception=True)
         customer = frappe.get_doc({
             "doctype": "Customer",
             "name": woocommerce_customer.get("id"),
@@ -65,7 +71,7 @@ def create_customer(woocommerce_customer, woocommerce_customer_list):
         if e.args[0] and e.args[0].startswith("402"):
             raise e
         else:
-            make_woocommerce_log(title=e, status="Error", method="create_customer", message=frappe.get_traceback(),
+            make_woocommerce_log(title="{0}".format(e), status="Error", method="create_customer", message=frappe.get_traceback(),
                 request_data=woocommerce_customer, exception=True)
         
 def create_customer_address(customer, woocommerce_customer):
@@ -95,7 +101,7 @@ def create_customer_address(customer, woocommerce_customer):
             }).insert()
 
         except Exception as e:
-            make_woocommerce_log(title=e, status="Error", method="create_customer_address", message=frappe.get_traceback(),
+            make_woocommerce_log(title=e.message, status="Error", method="create_customer_address", message=frappe.get_traceback(),
                     request_data=woocommerce_customer, exception=True)
 
     if shipping_address:
@@ -121,7 +127,7 @@ def create_customer_address(customer, woocommerce_customer):
             }).insert()
             
         except Exception as e:
-            make_woocommerce_log(title=e, status="Error", method="create_customer_address", message=frappe.get_traceback(),
+            make_woocommerce_log(title=e.message, status="Error", method="create_customer_address", message=frappe.get_traceback(),
                 request_data=woocommerce_customer, exception=True)
 
 def create_customer_contact(customer, woocommerce_customer):
@@ -139,7 +145,7 @@ def create_customer_contact(customer, woocommerce_customer):
         }).insert()
 
     except Exception as e:
-        make_woocommerce_log(title=e, status="Error", method="create_customer_contact", message=frappe.get_traceback(),
+        make_woocommerce_log(title=e.message, status="Error", method="create_customer_contact", message=frappe.get_traceback(),
                 request_data=woocommerce_customer, exception=True)
 
 def get_country_name(code):
